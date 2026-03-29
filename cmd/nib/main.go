@@ -887,9 +887,27 @@ var rollbackCmd = &cobra.Command{
 
 var uninstallNixCmd = &cobra.Command{
 	Use:   "uninstall-nix",
-	Short: "Fully remove Nix and all packages",
+	Short: "Fully remove Nix, all packages, and nib config",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("This will completely remove Nix and all installed packages.")
+		home, _ := os.UserHomeDir()
+
+		toRemove := []string{
+			filepath.Join(localBin(), "nib"),
+			filepath.Join(home, ".config", "nib"),
+			fontconfigConf(),
+			filepath.Join(home, ".nix-profile"),
+			filepath.Join(home, ".nix-defexpr"),
+			filepath.Join(home, ".nix-channels"),
+		}
+
+		fmt.Println("This will completely remove Nix, all installed packages, and nib config.")
+		fmt.Println("The following will be deleted:")
+		fmt.Println("  /nix  (and all packages — via nix-installer)")
+		for _, p := range toRemove {
+			if _, err := os.Lstat(p); err == nil {
+				fmt.Printf("  %s\n", p)
+			}
+		}
 		fmt.Print("Are you sure? [y/N] ")
 		reader := bufio.NewReader(os.Stdin)
 		answer, _ := reader.ReadString('\n')
@@ -897,23 +915,31 @@ var uninstallNixCmd = &cobra.Command{
 			fmt.Println("Aborted.")
 			return nil
 		}
+
 		installer, err := exec.LookPath("nix-installer")
 		if err != nil {
 			if _, statErr := os.Stat(nixInstallerPath); statErr == nil {
 				installer = nixInstallerPath
 			} else {
-				return fmt.Errorf("could not find nix-installer. See https://install.determinate.systems/nix")
+				return fmt.Errorf("could not find nix-installer; if Nix was not installed via Determinate Systems, remove /nix manually")
 			}
 		}
 		if err := runCmd(installer, "uninstall", "--no-confirm"); err != nil {
 			return err
 		}
-		nibBin := filepath.Join(localBin(), "nib")
-		if _, err := os.Stat(nibBin); err == nil {
-			os.Remove(nibBin)
-			fmt.Printf("Removed %s\n", nibBin)
+
+		for _, p := range toRemove {
+			if _, err := os.Lstat(p); err != nil {
+				continue
+			}
+			if err := os.RemoveAll(p); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: could not remove %s: %v\n", p, err)
+			} else {
+				fmt.Printf("Removed %s\n", p)
+			}
 		}
-		fmt.Println("Nix uninstalled.")
+
+		fmt.Println("Done. Open a new shell to clear any remaining nix environment variables.")
 		return nil
 	},
 }
