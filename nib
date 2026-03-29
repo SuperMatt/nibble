@@ -68,7 +68,7 @@ def cmd_install(args):
         sys.stderr.write("error: specify at least one package\n")
         sys.exit(1)
     pkgs = [f"nixpkgs#{p}" for p in args.packages]
-    nix("profile", "install", *pkgs)
+    nix("profile", "add", *pkgs)
 
 
 def cmd_remove(args):

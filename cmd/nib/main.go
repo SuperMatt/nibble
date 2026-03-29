@@ -186,7 +186,7 @@ var installCmd = &cobra.Command{
 		for i, p := range args {
 			pkgs[i] = "nixpkgs#" + p
 		}
-		return nix(append([]string{"profile", "install"}, pkgs...)...)
+		return nix(append([]string{"profile", "add"}, pkgs...)...)
 	},
 }
 
