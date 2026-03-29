@@ -188,6 +188,17 @@ func getInstalledPackages() (map[string]profileElement, error) {
 	return profile.Elements, nil
 }
 
+// profileGeneration returns the current nix profile symlink target,
+// which changes whenever a profile generation is created.
+func profileGeneration() string {
+	home, _ := os.UserHomeDir()
+	target, err := os.Readlink(filepath.Join(home, ".nix-profile"))
+	if err != nil {
+		return ""
+	}
+	return target
+}
+
 // versionFromStorePath extracts the version from a nix store path.
 // e.g. /nix/store/<hash>-helix-25.0 → "25.0"
 func versionFromStorePath(storePath, pkgName string) string {
@@ -590,22 +601,31 @@ var upgradeCmd = &cobra.Command{
 			return nil
 		}
 		pinned := loadPinned()
+		before := profileGeneration()
+
+		var upgradeErr error
 		if len(pinned) == 0 {
-			return nix("profile", "upgrade", ".*")
-		}
-		var toUpgrade []string
-		for name := range pkgs {
-			if !pinned[name] {
-				toUpgrade = append(toUpgrade, name)
+			upgradeErr = nix("profile", "upgrade", ".*")
+		} else {
+			var toUpgrade []string
+			for name := range pkgs {
+				if !pinned[name] {
+					toUpgrade = append(toUpgrade, name)
+				}
 			}
+			if len(toUpgrade) == 0 {
+				fmt.Println("nib: all packages are pinned, nothing to upgrade")
+				return nil
+			}
+			sort.Strings(toUpgrade)
+			fmt.Printf("nib: upgrading %s (skipping %d pinned)\n", strings.Join(toUpgrade, ", "), len(pinned))
+			upgradeErr = nix(append([]string{"profile", "upgrade"}, toUpgrade...)...)
 		}
-		if len(toUpgrade) == 0 {
-			fmt.Println("nib: all packages are pinned, nothing to upgrade")
-			return nil
+
+		if upgradeErr == nil && profileGeneration() == before {
+			fmt.Println("nib: all packages are up to date")
 		}
-		sort.Strings(toUpgrade)
-		fmt.Printf("nib: upgrading %s (skipping %d pinned)\n", strings.Join(toUpgrade, ", "), len(pinned))
-		return nix(append([]string{"profile", "upgrade"}, toUpgrade...)...)
+		return upgradeErr
 	},
 }
 
