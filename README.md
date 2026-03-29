@@ -79,6 +79,32 @@ make install   # build and install to ~/.local/bin/nib
 make clean     # remove installed binary
 ```
 
+## Development
+
+### Running tests
+
+```bash
+make test
+```
+
+### Versioning
+
+Versions come from git tags. `make install` injects the version at build time using `git describe --tags --always --dirty`:
+
+- Clean tagged build → `v0.1.0`
+- Commits after a tag → `v0.1.0-3-gabcdef`
+- Uncommitted changes → `v0.1.0-dirty`
+
+To cut a release:
+
+```bash
+git tag v0.2.0
+git push --tags
+make install   # nib version → v0.2.0
+```
+
+For remote installs (`go install github.com/SuperMatt/nibble/cmd/nib@latest`), Go's build info provides the version automatically — no ldflags needed.
+
 ## Requirements
 
 - Linux (Fedora or Ubuntu recommended)

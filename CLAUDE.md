@@ -26,21 +26,17 @@ Requires Go 1.21+. The module is `github.com/SuperMatt/nibble`. Uses [Cobra](htt
 
 ## Versioning
 
-`var version = "dev"` is the default. `make install` injects the version at build time via:
+`var version = "dev"` is the in-source default. The Makefile injects the real version at build time:
 
 ```makefile
 go install -ldflags "-X main.version=$(VERSION)" ./cmd/nib/
 ```
 
-where `VERSION` comes from `git describe --tags --always --dirty`. To release a new version, create an annotated tag:
+`VERSION` = `git describe --tags --always --dirty`. To release: `git tag vX.Y.Z && git push --tags && make install`.
 
-```bash
-git tag v0.2.0
-git push --tags
-make install   # → nib version reports v0.2.0
-```
+For remote installs (`go install ...@latest`), `runtime/debug.ReadBuildInfo()` supplies the version as a fallback so ldflags are not required.
 
-For remote installs (`go install github.com/SuperMatt/nibble/cmd/nib@latest`), `runtime/debug.ReadBuildInfo()` provides the version as a fallback.
+See the README Development section for the full workflow.
 
 ## Key conventions
 
