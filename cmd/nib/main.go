@@ -529,8 +529,20 @@ var installCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ensureNix()
-		pkgs := make([]string, len(args))
-		for i, p := range args {
+		installed, _ := getInstalledPackages()
+		var toInstall []string
+		for _, pkg := range args {
+			if _, already := installed[pkg]; already {
+				fmt.Printf("nib: '%s' is already installed\n", pkg)
+			} else {
+				toInstall = append(toInstall, pkg)
+			}
+		}
+		if len(toInstall) == 0 {
+			return nil
+		}
+		pkgs := make([]string, len(toInstall))
+		for i, p := range toInstall {
 			pkgs[i] = "nixpkgs#" + p
 		}
 		return nix(append([]string{"profile", "add"}, pkgs...)...)
@@ -544,7 +556,22 @@ var removeCmd = &cobra.Command{
 	Args:    cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ensureNix()
-		return nix(append([]string{"profile", "remove"}, args...)...)
+		installed, err := getInstalledPackages()
+		if err != nil {
+			return err
+		}
+		var toRemove []string
+		for _, pkg := range args {
+			if _, ok := installed[pkg]; ok {
+				toRemove = append(toRemove, pkg)
+			} else {
+				fmt.Printf("nib: '%s' is not installed\n", pkg)
+			}
+		}
+		if len(toRemove) == 0 {
+			return nil
+		}
+		return nix(append([]string{"profile", "remove"}, toRemove...)...)
 	},
 }
 
@@ -554,13 +581,17 @@ var upgradeCmd = &cobra.Command{
 	Short:   "Upgrade all installed packages (skips pinned)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ensureNix()
-		pinned := loadPinned()
-		if len(pinned) == 0 {
-			return nix("profile", "upgrade", ".*")
-		}
 		pkgs, err := getInstalledPackages()
 		if err != nil {
 			return err
+		}
+		if len(pkgs) == 0 {
+			fmt.Println("nib: no packages installed")
+			return nil
+		}
+		pinned := loadPinned()
+		if len(pinned) == 0 {
+			return nix("profile", "upgrade", ".*")
 		}
 		var toUpgrade []string
 		for name := range pkgs {
@@ -569,11 +600,11 @@ var upgradeCmd = &cobra.Command{
 			}
 		}
 		if len(toUpgrade) == 0 {
-			fmt.Println("All packages are pinned.")
+			fmt.Println("nib: all packages are pinned, nothing to upgrade")
 			return nil
 		}
 		sort.Strings(toUpgrade)
-		fmt.Printf("Upgrading (skipping %d pinned): %s\n", len(pinned), strings.Join(toUpgrade, ", "))
+		fmt.Printf("nib: upgrading %s (skipping %d pinned)\n", strings.Join(toUpgrade, ", "), len(pinned))
 		return nix(append([]string{"profile", "upgrade"}, toUpgrade...)...)
 	},
 }
