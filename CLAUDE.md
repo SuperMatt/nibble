@@ -24,6 +24,24 @@ make install   # builds and installs to ~/.local/bin/nib
 
 Requires Go 1.21+. The module is `github.com/SuperMatt/nibble`. Uses [Cobra](https://github.com/spf13/cobra) for CLI.
 
+## Versioning
+
+`var version = "dev"` is the default. `make install` injects the version at build time via:
+
+```makefile
+go install -ldflags "-X main.version=$(VERSION)" ./cmd/nib/
+```
+
+where `VERSION` comes from `git describe --tags --always --dirty`. To release a new version, create an annotated tag:
+
+```bash
+git tag v0.2.0
+git push --tags
+make install   # → nib version reports v0.2.0
+```
+
+For remote installs (`go install github.com/SuperMatt/nibble/cmd/nib@latest`), `runtime/debug.ReadBuildInfo()` provides the version as a fallback.
+
 ## Key conventions
 
 - All source lives in `cmd/nib/main.go` — keep it that way unless it grows substantially
