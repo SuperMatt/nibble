@@ -86,7 +86,7 @@ def cmd_upgrade(args):
 
 def cmd_search(args):
     ensure_nix()
-    nix("search", "nixpkgs", *args.terms)
+    nix("search", "--quiet", "nixpkgs", *args.terms)
 
 
 def cmd_list(args):
@@ -96,7 +96,7 @@ def cmd_list(args):
 
 def cmd_info(args):
     ensure_nix()
-    nix("search", "nixpkgs", f"^{args.package}$")
+    nix("search", "--quiet", "nixpkgs", f"^{args.package}$")
 
 
 def cmd_rollback(args):

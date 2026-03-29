@@ -169,7 +169,7 @@ var searchCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ensureNix()
-		return nix(append([]string{"search", "nixpkgs"}, args...)...)
+		return nix(append([]string{"search", "--quiet", "nixpkgs"}, args...)...)
 	},
 }
 
@@ -188,7 +188,7 @@ var infoCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ensureNix()
-		return nix("search", "nixpkgs", "^"+args[0]+"$")
+		return nix("search", "--quiet", "nixpkgs", "^"+args[0]+"$")
 	},
 }
 
