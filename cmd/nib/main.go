@@ -126,17 +126,6 @@ func checkFontconfig() checkResult {
 	return checkResult{false, nixFontsDir() + " not registered with fontconfig"}
 }
 
-func checkFcCache() checkResult {
-	out, err := exec.Command("fc-list", "--format=%{file}\n").Output()
-	if err == nil && strings.Contains(string(out), "/nix/") {
-		return checkResult{true, "nix fonts visible to fontconfig"}
-	}
-	if _, err := os.Stat(fontconfigConf()); err != nil {
-		return checkResult{false, "fontconfig not configured (fix fontconfig first)"}
-	}
-	return checkResult{false, "run fc-cache to rebuild font cache"}
-}
-
 func fixFontconfig() error {
 	conf := fontconfigConf()
 	if err := os.MkdirAll(filepath.Dir(conf), 0755); err != nil {
@@ -153,11 +142,6 @@ func fixFontconfig() error {
 	}
 	fmt.Println("  Written", conf)
 	return nil
-}
-
-func fixFcCache() error {
-	fmt.Println("  Running fc-cache...")
-	return runCmd("fc-cache", "-f", nixFontsDir())
 }
 
 var healthChecks = []check{
@@ -178,12 +162,6 @@ var healthChecks = []check{
 		run:     checkFontconfig,
 		fixDesc: "register ~/.nix-profile/share/fonts with fontconfig",
 		fix:     fixFontconfig,
-	},
-	{
-		label:   "font cache",
-		run:     checkFcCache,
-		fixDesc: "rebuild fc-cache",
-		fix:     fixFcCache,
 	},
 }
 
